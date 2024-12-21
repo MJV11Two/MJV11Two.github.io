@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+
+  <head>
+    <link rel="stylesheet" type="text/css" href="styles.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet" />
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <title>EECS106 A Final Project</title>
+  </head>
+
+  <body class="pageContents">
+    <nav class="top-bar">
+      <a href="index.html" class="nav-item">Introduction</a>
+      <a href="design.html" class="nav-item">Design</a>
+      <a href="implementation.html" class="nav-item">Implementation</a>
+      <a href="results.html" class="nav-item">Results</a>
+      <a href="conclusion.html" class="nav-item">Conclusion</a>
+      <a href="team.html" class="nav-item">Team</a>
+      <a href="additional.html" class="nav-item">Additional Materials</a>
+    </nav>
+    <div class="background">
+      <h1 class="backgroundImageTitle">
+        EECS 106A Final Project - Grippy Kasparov
+      </h1>
+      <p class="backgroundImageText">EECS106A Fall 2024 Team 23</p>
+    </div>
+    <h1 class="title">Implementation</h1>
+    <div class="wrapper">
+      <div class="content">
+        <h3>Hardware</h3>
+        <h4>UR10 Robot Arm:</h4>
+        <p>
+          We were very lucky that the Embodied Dexterity Lab allowed us to use
+          their UR10 robot arm. Although there is some
+          difference between the codes and functions from what we used in the
+          lab for a sawyer, but the idea is generally similar that is easy for
+          us to adapt.
+
+          We interfaced the UR-10 robot in a different way then we did sawyer and it took some time to
+          learn the API to properly control what we wanted to do. The arm was constrained, however, in a
+          much more tight space then the sawyer was restricting the speed and mobility of the entire system.
+          One software issue was initializing a RTDE (Real Time Data Exchange) connection everytime we ran our code
+          which resulted in some annoying errors.
+        </p>
+      </div>
+      <img class="noteImage" src="images/ur10.png" />
+
+      <div class="content">
+        <h4>Circuit:</h4>
+        <p>
+          The smart suction cup originally only had negative pressure to suck an object.
+          This results, in a lack of a timely and controlled release of the object and once we turn off the suction it could take
+          minutes before the object is dropped. This naturally lead us to creating a circuit that could provide that necessary
+          positive pressure.
+          Here is a
+          <a href="design.html#circuit">link</a> to the more detailed
+          description of the circuit in the design section.
+        </p>
+      </div>
+      <img class="noteImage" src="images/Detailed Circuit.png" />
+      <div class="content">
+        <h4>Smart Suction Cup:</h4>
+        <p>
+          The concept of the smart suction cup is to use haptic search to be able to pick up items with complex geometries
+          that is difficult for computer vision.
+          The smart suction cup has four small chambers that air can push or pull through and that pressure is relayed to an ESP32
+          microcontroller sending out pressure readings back toc our computer. For our task specifically, it beats out CV as
+          we can just send the suction cup to vicinity of the chess piece and the haptic search can handle the grasping from
+          there. Compared to the sawyer as well, we can even keep the identifying shapes of the chess pieces not needing to cater
+          for just a uniform geometry.
+        </p>
+      </div>
+      <img class="noteImage" src="images/smart suction cup.png" />
+      <div class="content">
+        <h3>Software</h3>
+        <h4>Computer Vision:</h4>
+        <p>
+          This part is straight forward, we use the color thresholding we
+          learned in the lab to locate the center of the board by pasting a
+          orange tape in the middle of the board. So we can create a grid
+          mapping base on the center of the board. We first initialize the
+          camera frame using the tool frame to get the transfrom from camera
+          link to base, which is the world frame, and then we compute the
+          position of the orange tape in world frame using that transformation
+          The robot arm will first face the camera down and start detecting the
+          orange tape in the camera frame, we then put the detected position in
+          another python file so the robot arm will go to the center for us to
+          verify whether it is accurate or not.
+        </p>
+      </div>
+      <img class="noteImage" src="images/orange tape center.jpg" />
+      <div class="content">
+        <h4>Haptic Search and Pressure Sensing:</h4>
+        <p>
+          As mentioned above, the smart suction cup performs haptic search to
+          find a secure suction location, and if not searches for one.
+        </p>
+      </div>
+
+      <div class="imageWrapper">
+        <div class="title-image-wrapper">
+          <p class="imagSubTitle"><b>Pressure reading without suction:</b></p>
+          <img src="images/normal pressure sensing.png" class="resultImage" />
+        </div>
+        <div class="title-image-wrapper">
+          <p class="imagSubTitle"><b>Pressure reading of suction</b></p>
+          <img src="images/Suction pressure sensing.png" class="resultImage" />
+        </div>
+      </div>
+
+      <div class="content">
+        <p>
+          Our search and proper suction is based off these graphs shown above, we can see that at an off state the pressure
+          sensors
+          are reading atmospheric pressure at around 101,000 Pa. When we attempt to pick up a piece, each chamber will read some
+          amount of drop in pressure
+          and if all four chambers' pressure drop are less than a certain threshold, which we emperically found, we determine we
+          have a good
+          suction location and we pick up the piece.
+          However, as mentioned before, the position or geometry of the piece leads to imperfect readings with potentially 1, 2,
+          or even 3 chambers not clearing the threshold. To ensure we only pickup with all four chambers sufficiently clearing the
+          threshold,
+          we need to move in the direction of the clogged chambers. Thus based off the current pressure readings we can move in a
+          small step in the direction of the direction vector. This direction vector is calculated based off the four chambers as
+          they can represent cardinal directions based on the average of the two pointing in the represective direction. Everytime
+          we move we must apply positive pressure as to not partially suction the piece and move it when searching. We
+          continue moving in the direction until we finally gain a full vacuum seal and we can pickup the piece.
+        </p>
+      </div>
+
+      <div class="videoWrapper">
+        <p class="videoTitle"><b>Close up Haptic Search:</b></p>
+        <iframe class="videos" src="https://www.youtube.com/embed/aAXWdapOAQI" title="YouTube video player" frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
+        </iframe>
+      </div>
+      <div class="content">
+        <h4>Game Logic:</h4>
+        <p>
+          As for the actual gameplay, it required us to locally install Stockfish 14
+          so we have an already built-in system to handle erroneous chess moves.
+          We created two topics one for the input of the chess move and one to move the robot arm.
+          We defined a new message type ChessState to encode the piece to move (K), the coordinates of our move (e2e4),
+          whether or not we captured and the piece that we captured. This information allows us to handle all edge
+          cases necessary that can occur in a game.
+
+          <br></br>
+          We created two ROS topics, one publisher <b>/move_to_make</b> and one listener <b>/move_robot</b>. <b>/move_to_make</b>
+          handles
+          the
+          connection to stockfish and the game loop that takes in user input. <b>/move_robot</b> takes in the ChessState msg and
+          unwraps
+          it handling basic moves, capturing, promoting, castling, etc. Once the user enters their move, the robot arm will play
+          their move directly after always resetting right over the board ready for the user's next move.
+          </ol>
+        </p>
+      </div>
+
+      <div class="content">
+        <h3>Complete System</h3>
+        <ol>
+          <li>
+            Use computer vision to obtain the center of the chess board using color
+            thresholding
+          </li>
+          <li>
+            After we have the correct center position, we update it manually in
+            the game play file so that when the game starts, it will calculate
+            the position of the grids base off of the center position.
+          </li>
+          <li>
+            When the game starts, we input our move into
+            the terminal which the robot arm carries out.
+            The robot responds playing Stockfish's best move given the current board state.
+          </li>
+          <li>
+            For each move, we publish a Pull State message to our Push Pull Publisher that initiates suction and heads to initial
+            square based off the type of move played, i.e if capture (moving captured piece to the graveyard). We initate our
+            haptic search, error correcting until we finally suction the piece. We then hover a little above the place position
+            and send a push state message to our publisher that drops the piece in the middle of the square.
+          </li>
+          <li>
+            We continue the above process until Stockfish eventually wins :).
+          </li>
+        </ol>
+      </div>
+      <div class="videoWrapper">
+        <p class="videoTitle"><b>Simple System Flow</b></p>
+        <iframe class="videos" src="https://www.youtube.com/embed/YA2qL1mnWWc" title="YouTube video player" frameborder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
+        </iframe>
+      </div>
+    </div>
+  </body>
+</html>
